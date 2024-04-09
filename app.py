@@ -34,16 +34,6 @@ def delete_prompt(id):
     prompts_df = prompts_df[prompts_df['id'] != id]
     save_changes()
 
-# Part of the UI where prompts can be deleted
-elif page == "View Prompts":
-    st.write("## View and Manage Prompts")
-    for index, row in prompts_df.iterrows():
-        with st.expander(f"{row['title']}"):
-            ...
-            # Button to trigger deletion
-            if st.button(f"Delete {row['id']}", key=f"delete_{row['id']}"):
-                delete_prompt(row['id'])  # Call the delete function
-                st.experimental_rerun()  # Refresh the page to show the update
 
 
 def toggle_favorite(id):
