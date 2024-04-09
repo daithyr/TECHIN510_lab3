@@ -1,0 +1,7 @@
+pandas
+plotly
+streamlit
+yfinance
+pandas-datareader
+prophet
+seaborn>=0.11.0
