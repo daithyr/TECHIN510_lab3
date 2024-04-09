@@ -29,6 +29,23 @@ def update_prompt(id, title, content, tags):
     prompts_df.at[row_index, 'last_modified_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     save_changes()
 
+def delete_prompt(id):
+    global prompts_df
+    prompts_df = prompts_df[prompts_df['id'] != id]
+    save_changes()
+
+# Part of the UI where prompts can be deleted
+elif page == "View Prompts":
+    st.write("## View and Manage Prompts")
+    for index, row in prompts_df.iterrows():
+        with st.expander(f"{row['title']}"):
+            ...
+            # Button to trigger deletion
+            if st.button(f"Delete {row['id']}", key=f"delete_{row['id']}"):
+                delete_prompt(row['id'])  # Call the delete function
+                st.experimental_rerun()  # Refresh the page to show the update
+
+
 def toggle_favorite(id):
     row_index = prompts_df.index[prompts_df['id'] == id].tolist()[0]
     prompts_df.at[row_index, 'favorite'] = not prompts_df.at[row_index, 'favorite']
