@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import streamlit as st
 import psycopg2
@@ -16,6 +16,7 @@ cur.execute(
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
         prompt TEXT NOT NULL,
+        favorite BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -24,137 +25,59 @@ cur.execute(
 
 @dataclass
 class Prompt:
-    title: str
-    prompt: str
+    title: str = field(default="")
+    prompt: str = field(default="")
+    id: int = field(default=None)
 
-def prompt_form(prompt=Prompt("","")):
-    """
-    TODO: Add validation to the form, so that the title and prompt are required.
-    """
+def prompt_form(prompt=Prompt()):
     with st.form(key="prompt_form", clear_on_submit=True):
-        title = st.text_input("Title", value=prompt.title)
-        prompt = st.text_area("Prompt", height=200, value=prompt.prompt)
+        title = st.text_input("Title", value=prompt.title, help="Title is required.")
+        prompt_text = st.text_area("Prompt", height=200, value=prompt.prompt, help="Prompt text is required.")
         submitted = st.form_submit_button("Submit")
-        if submitted:
-            return Prompt(title, prompt)
+        if submitted and title and prompt_text:
+            return Prompt(title=title, prompt=prompt_text, id=prompt.id)
+        elif submitted:
+            st.warning("Both title and prompt are required.")
 
 st.title("Promptbase")
 st.subheader("A simple app to store and retrieve prompts")
 
+# Form for creating or updating prompts
 prompt = prompt_form()
-if prompt:
-    cur.execute("INSERT INTO prompts (title, prompt) VALUES (%s, %s)", (prompt.title, prompt.prompt,))
+if prompt and prompt.id is None:
+    cur.execute("INSERT INTO prompts (title, prompt) VALUES (%s, %s) RETURNING id", (prompt.title, prompt.prompt,))
+    prompt_id = cur.fetchone()[0]
     con.commit()
-    st.success("Prompt added successfully!")
+    st.success(f"Prompt {prompt_id} added successfully!")
 
-cur.execute("SELECT * FROM prompts")
+# Search functionality
+search_query = st.text_input("Search for prompts")
+sort_order = st.selectbox("Sort by", ["Newest", "Oldest"])
+
+# Displaying prompts based on search and sort order
+sort_order_sql = "DESC" if sort_order == "Newest" else "ASC"
+cur.execute(f"SELECT id, title, prompt, favorite FROM prompts WHERE title ILIKE %s OR prompt ILIKE %s ORDER BY created_at {sort_order_sql}", (f"%{search_query}%", f"%{search_query}%"))
 prompts = cur.fetchall()
 
-# TODO: Add a search bar
-# TODO: Add a sort by date
-# TODO: Add favorite button
+# Handling prompt updates or deletions
 for p in prompts:
-    with st.expander(p[1]):
+    with st.expander(f"{p[1]}"):
         st.code(p[2])
-        # TODO: Add a edit function
-        if st.button("Delete", key=p[0]):
+        if st.checkbox("Favorite", value=p[3], key=f"fav_{p[0]}"):
+            cur.execute("UPDATE prompts SET favorite = %s WHERE id = %s", (not p[3], p[0]))
+            con.commit()
+            st.success(f"Prompt {p[0]} favorite status updated!")
+        edit = st.button("Edit", key=f"edit_{p[0]}")
+        delete = st.button("Delete", key=f"delete_{p[0]}")
+        if delete:
             cur.execute("DELETE FROM prompts WHERE id = %s", (p[0],))
             con.commit()
-            st.rerun()
-
-
-
-# import streamlit as st
-# import pandas as pd
-# from datetime import datetime
-
-# # Initialize data store
-# data_file = 'prompts.csv'
-# try:
-#     prompts_df = pd.read_csv(data_file, converters={'tags': eval})
-# except FileNotFoundError:
-#     prompts_df = pd.DataFrame(columns=['id', 'title', 'content', 'favorite', 'tags', 'creation_date', 'last_modified_date', 'usage_count'])
-#     prompts_df.to_csv(data_file, index=False)
-
-# # Function to save changes to CSV
-# def save_changes():
-#     prompts_df.to_csv(data_file, index=False)
-
-# # CRUD Operations
-# def add_prompt(title, content, tags):
-#     new_id = prompts_df['id'].max() + 1 if not prompts_df.empty else 1
-#     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     prompts_df.loc[len(prompts_df.index)] = [new_id, title, content, False, tags.split(','), now, now, 0]
-#     save_changes()
-
-# def update_prompt(id, title, content, tags):
-#     row_index = prompts_df.index[prompts_df['id'] == id].tolist()[0]
-#     prompts_df.at[row_index, 'title'] = title
-#     prompts_df.at[row_index, 'content'] = content
-#     prompts_df.at[row_index, 'tags'] = tags.split(',')
-#     prompts_df.at[row_index, 'last_modified_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     save_changes()
-
-# def delete_prompt(id):
-#     global prompts_df
-#     prompts_df = prompts_df[prompts_df['id'] != id]
-#     save_changes()
-
-
-
-# def toggle_favorite(id):
-#     row_index = prompts_df.index[prompts_df['id'] == id].tolist()[0]
-#     prompts_df.at[row_index, 'favorite'] = not prompts_df.at[row_index, 'favorite']
-#     save_changes()
-
-# # Streamlit UI
-# st.title("ChatGPT Prompt Manager")
-
-# # Navigation
-# page = st.sidebar.selectbox("Navigate", ["Create Prompt", "View Prompts", "Search Prompts", "Favorites"])
-
-# if page == "Create Prompt":
-#     with st.form("Create Prompt"):
-#         st.write("## Create a New Prompt")
-#         title = st.text_input("Title")
-#         content = st.text_area("Prompt Content")
-#         tags = st.text_input("Tags (comma-separated)")
-#         submitted = st.form_submit_button("Save Prompt")
-#         if submitted and title and content:
-#             add_prompt(title, content, tags)
-#             st.success("Prompt saved successfully!")
-
-# elif page == "View Prompts":
-#     st.write("## View and Manage Prompts")
-#     for index, row in prompts_df.iterrows():
-#         with st.expander(f"{row['title']}"):
-#             st.write(f"**ID:** {row['id']}")
-#             st.write(f"**Content:** {row['content']}")
-#             st.write(f"**Tags:** {', '.join(row['tags'])}")
-#             st.write(f"**Favorite:** {'Yes' if row['favorite'] else 'No'}")
-#             if st.button(f"Toggle Favorite", key=f"fav_{row['id']}"):
-#                 toggle_favorite(row['id'])
-#                 st.experimental_rerun()
-#             if st.button(f"Delete {row['id']}", key=f"delete_{row['id']}"):
-#                 prompts_df.drop(index, inplace=True)
-#                 save_changes()
-#                 st.experimental_rerun()
-#             title, content, tags = st.text_input(f"Title {row['id']}", row['title']), st.text_area(f"Content {row['id']}", row['content']), st.text_input(f"Tags {row['id']}", ', '.join(row['tags']))
-#             if st.button(f"Update {row['id']}", key=f"update_{row['id']}"):
-#                 update_prompt(row['id'], title, content, tags)
-#                 st.experimental_rerun()
-
-# elif page == "Search Prompts":
-#     search_query = st.text_input("Enter search query")
-#     if search_query:
-#         results = prompts_df[prompts_df.apply(lambda row: search_query.lower() in row['title'].lower() or search_query.lower() in row['content'].lower() or search_query.lower() in ','.join(row['tags']).lower(), axis=1)]
-#         for _, row in results.iterrows():
-#             st.subheader(row['title'])
-#             st.write(row['content'])
-
-# elif page == "Favorites":
-#     st.write("## Favorite Prompts")
-#     favorites = prompts_df[prompts_df['favorite'] == True]
-#     for index, row in favorites.iterrows():
-#         st.subheader(row['title'])
-#         st.write(row['content'])
+            st.experimental_rerun()
+        if edit:
+            prompt_to_edit = Prompt(title=p[1], prompt=p[2], id=p[0])
+            prompt_form(prompt_to_edit)
+            if prompt and prompt.id is not None:
+                cur.execute("UPDATE prompts SET title = %s, prompt = %s WHERE id = %s", (prompt.title, prompt.prompt, prompt.id))
+                con.commit()
+                st.success(f"Prompt {prompt.id} updated successfully!")
+                st.experimental_rerun()
