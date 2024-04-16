@@ -10,7 +10,7 @@ pip install -r requirement.txt
 
 streamlit run app.py
 ```
-##webapp features
+## webapp features
 
 1. CRUD prompts
     1. Create new prompts
@@ -25,4 +25,4 @@ streamlit run app.py
 
 
 ## lessons learned
-I had a deeper understanding of git and how to use Streamlit to visualize data. 
+I had a deeper understanding of data storage and how to use Streamlit as front end to guide users store data. 
