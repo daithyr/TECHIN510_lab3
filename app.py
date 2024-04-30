@@ -74,11 +74,11 @@ for p in prompts:
             st.rerun()
         if edit:
             prompt_to_edit = Prompt(title=p[1], prompt=p[2], id=p[0])
-            prompt_form(prompt_to_edit, form_key=f"edit_form_{p[0]}")
-            if prompt and prompt.id is not None:
-                cur.execute("UPDATE prompts SET title = %s, prompt = %s WHERE id = %s", (prompt.title, prompt.prompt, prompt.id))
+            edited_prompt = prompt_form(prompt_to_edit, form_key=f"edit_form_{p[0]}")
+            if edited_prompt:
+                cur.execute("UPDATE prompts SET title = %s, prompt = %s WHERE id = %s", (edited_prompt.title, edited_prompt.prompt, edited_prompt.id))
                 con.commit()
-                st.success(f"Prompt {prompt.id} updated successfully!")
+                st.success(f"Prompt {edited_prompt.id} updated successfully!")
                 st.rerun()
 # import os
 # from dataclasses import dataclass, field
@@ -109,8 +109,8 @@ for p in prompts:
 #     prompt: str = field(default="")
 #     id: int = field(default=None)
 
-# def prompt_form(prompt=Prompt()):
-#     with st.form(key="prompt_form", clear_on_submit=True):
+# def prompt_form(prompt=Prompt(), form_key="prompt_form"):
+#     with st.form(key=form_key, clear_on_submit=True):
 #         title = st.text_input("Title", value=prompt.title, help="Title is required.")
 #         prompt_text = st.text_area("Prompt", height=200, value=prompt.prompt, help="Prompt text is required.")
 #         submitted = st.form_submit_button("Submit")
@@ -153,13 +153,12 @@ for p in prompts:
 #         if delete:
 #             cur.execute("DELETE FROM prompts WHERE id = %s", (p[0],))
 #             con.commit()
-#             st.experimental_rerun()
+#             st.rerun()
 #         if edit:
 #             prompt_to_edit = Prompt(title=p[1], prompt=p[2], id=p[0])
-#             prompt_form(prompt_to_edit)
+#             prompt_form(prompt_to_edit, form_key=f"edit_form_{p[0]}")
 #             if prompt and prompt.id is not None:
 #                 cur.execute("UPDATE prompts SET title = %s, prompt = %s WHERE id = %s", (prompt.title, prompt.prompt, prompt.id))
 #                 con.commit()
 #                 st.success(f"Prompt {prompt.id} updated successfully!")
-#                 st.experimental_rerun()
-            
+#                 st.rerun()
