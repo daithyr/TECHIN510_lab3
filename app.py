@@ -5,7 +5,7 @@ import streamlit as st
 import psycopg2
 
 # Retrieve the Supabase connection URL from Streamlit secrets
-supabase_url = st.secrets["SUPABASE_URL"]
+supabase_url = st.secrets["DATABASE_URL"]
 
 con = psycopg2.connect(supabase_url)
 cur = con.cursor()
