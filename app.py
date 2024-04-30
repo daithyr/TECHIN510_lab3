@@ -1,13 +1,24 @@
+# import os
+# from dataclasses import dataclass, field
+
+# import streamlit as st
+# import psycopg2
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
+# con = psycopg2.connect(os.getenv("DATABASE_URL"))
+# cur = con.cursor()
+
 import os
 from dataclasses import dataclass, field
-
 import streamlit as st
 import psycopg2
-from dotenv import load_dotenv
 
-load_dotenv()
+# Retrieve the DATABASE_URL from Streamlit secrets
+database_url = st.secrets["DATABASE_URL"]
 
-con = psycopg2.connect(os.getenv("DATABASE_URL"))
+con = psycopg2.connect(database_url)
 cur = con.cursor()
 
 cur.execute(
@@ -22,6 +33,7 @@ cur.execute(
     )
     """
 )
+
 
 @dataclass
 class Prompt:
